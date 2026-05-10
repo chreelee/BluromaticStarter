@@ -20,7 +20,7 @@ import androidx.work.WorkInfo
 import kotlinx.coroutines.flow.Flow
 
 interface BluromaticRepository {
-    val outputWorkInfo: Flow<WorkInfo>
+    val outputWorkInfo: Flow<WorkInfo> // can remove ? from interface since guaranteed
     fun applyBlur(blurLevel: Int)
     fun cancelWork()
 }

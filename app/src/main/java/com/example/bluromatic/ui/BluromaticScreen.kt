@@ -136,7 +136,7 @@ fun BluromaticScreenContent(
 
 @Composable
 private fun BlurActions(
-    blurUiState: BlurUiState,
+    blurUiState: BlurUiState, // get uiState from ViewModel's blurUiState
     onStartClick: () -> Unit,
     onSeeFileClick: (String) -> Unit,
     onCancelClick: () -> Unit,
@@ -146,24 +146,25 @@ private fun BlurActions(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center
     ) {
-        when (blurUiState) {
+        when (blurUiState) { // controls apps UI
             is BlurUiState.Default -> {
                 Button(
-                    onClick = onStartClick,
+                    onClick = onStartClick, // pass onStartClick variable
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.start))
                 }
             }
 
-            is BlurUiState.Loading -> {
+            is BlurUiState.Loading -> { // app is actively blurring an image
                 FilledTonalButton(onCancelClick) { Text(stringResource(R.string.cancel_work)) }
                 CircularProgressIndicator(modifier = Modifier.padding(dimensionResource(R.dimen.padding_small)))
             }
 
             is BlurUiState.Complete -> {
+                // change button to onStartClick when complete
                 Button(onStartClick) { Text(stringResource(R.string.start)) }
-                Spacer(modifier = Modifier.width(dimensionResource(R.dimen.padding_small)))
+                Spacer(modifier = Modifier.width(dimensionResource(R.dimen.padding_small))) // spacer
                 FilledTonalButton({ onSeeFileClick(blurUiState.outputUri) })
                 { Text(stringResource(R.string.see_file)) }
             }

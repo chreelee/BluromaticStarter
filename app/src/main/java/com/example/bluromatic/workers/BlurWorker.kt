@@ -31,24 +31,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-private const val TAG = "BlurWorker"
+private const val TAG = "BlurWorker" // used in calls to Log()
 
 class BlurWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
-
+    // must override doWork
     override suspend fun doWork(): Result {
         val resourceUri = inputData.getString(KEY_IMAGE_URI)
         val blurLevel = inputData.getInt(KEY_BLUR_LEVEL, 1)
 
+        // displays status notification and notifies user BlurWorker has started
         makeStatusNotification(
             applicationContext.resources.getString(R.string.blurring_image),
             applicationContext
         )
 
+        // run lambda function in special thread pool for possible IO blocking operations
         return withContext(Dispatchers.IO) {
 
             // This is an utility function added to emulate slower work.
             delay(DELAY_TIME_MILLIS)
 
+            // add return with context
             return@withContext try {
                 require(!resourceUri.isNullOrBlank()) {
                     val errorMessage =
@@ -58,10 +61,12 @@ class BlurWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                 }
                 val resolver = applicationContext.contentResolver
 
+                // var picture to populate with bitmap passing in the image
                 val picture = BitmapFactory.decodeStream(
                     resolver.openInputStream(Uri.parse(resourceUri))
                 )
 
+                // save result of blur as output
                 val output = blurBitmap(picture, blurLevel)
 
                 // Write bitmap to a temp file
@@ -69,14 +74,14 @@ class BlurWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
 
                 val outputData = workDataOf(KEY_IMAGE_URI to outputUri.toString())
 
-                Result.success(outputData)
+                Result.success(outputData) // successful
             } catch (throwable: Throwable) {
                 Log.e(
                     TAG,
                     applicationContext.resources.getString(R.string.error_applying_blur),
                     throwable
                 )
-                Result.failure()
+                Result.failure() // failed
             }
         }
     }

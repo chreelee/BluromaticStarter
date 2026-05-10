@@ -39,9 +39,12 @@ import kotlinx.coroutines.flow.mapNotNull
 
 class WorkManagerBluromaticRepository(context: Context) : BluromaticRepository {
 
-    private var imageUri: Uri = context.getImageUri()
+    private var imageUri: Uri = context.getImageUri() // populate with image URI
     private val workManager = WorkManager.getInstance(context)
 
+    // call getWorksInfosByTagLiveData and pass TAG_OUTPUT as parameter
+    // .asFlow() to convert to Flow so it can work with KotlinFlow instead of LiveData
+    // chaining mapNotNull to ensure Flow contains values
     override val outputWorkInfo: Flow<WorkInfo> =
         workManager.getWorkInfosByTagLiveData(TAG_OUTPUT).asFlow().mapNotNull {
             if (it.isNotEmpty()) it.first() else null
@@ -54,7 +57,8 @@ class WorkManagerBluromaticRepository(context: Context) : BluromaticRepository {
     override fun applyBlur(blurLevel: Int) {
         // Add WorkRequest to Cleanup temporary images
         var continuation = workManager
-            .beginUniqueWork(
+            .beginUniqueWork( // beginUniqueWork for first data sync, and ensure
+                // with ExistingWorkPolicy object to use replace values if already exist
                 IMAGE_MANIPULATION_WORK_NAME,
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequest.from(CleanupWorker::class.java)
@@ -71,13 +75,13 @@ class WorkManagerBluromaticRepository(context: Context) : BluromaticRepository {
         // Input the Uri for the blur operation along with the blur level
         blurBuilder.setInputData(createInputDataForWorkRequest(blurLevel, imageUri))
 
-        blurBuilder.setConstraints(constraints)
+        blurBuilder.setConstraints(constraints) // add constraint object to object blurBuilder
 
         continuation = continuation.then(blurBuilder.build())
 
         // Add WorkRequest to save the image to the filesystem
         val save = OneTimeWorkRequestBuilder<SaveImageToFileWorker>()
-            .addTag(TAG_OUTPUT)
+            .addTag(TAG_OUTPUT) // to tag work request
             .build()
         continuation = continuation.then(save)
 
@@ -86,7 +90,7 @@ class WorkManagerBluromaticRepository(context: Context) : BluromaticRepository {
     }
 
     /**
-     * Cancel any ongoing WorkRequests
+     * Cancel any ongoing WorkRequests, using UNIQUE chain name to cancel all work in the chain
      * */
     override fun cancelWork() {
         workManager.cancelUniqueWork(IMAGE_MANIPULATION_WORK_NAME)

@@ -40,22 +40,29 @@ class BlurViewModel(private val bluromaticRepository: BluromaticRepository) : Vi
 
     internal val blurAmount = BlurAmountData.blurAmount
 
+    // populate blurUiState variable with outputWorkInfo Flow from Repository
     val blurUiState: StateFlow<BlurUiState> = bluromaticRepository.outputWorkInfo
         .map { info ->
+            // var outputImageUri to populate new variable's saved image URI from outputData object
             val outputImageUri = info.outputData.getString(KEY_IMAGE_URI)
             when {
+                // when work is finished and the image is not null/empty,
                 info.state.isFinished && !outputImageUri.isNullOrEmpty() -> {
-                    BlurUiState.Complete(outputUri = outputImageUri)
+                    BlurUiState.Complete(outputUri = outputImageUri) // set variable to output
                 }
+                // when work is canceled
                 info.state == WorkInfo.State.CANCELLED -> {
-                    BlurUiState.Default
+                    BlurUiState.Default // set variable to default
                 }
                 else -> BlurUiState.Loading
             }
-        }.stateIn(
-            scope = viewModelScope,
+        }.stateIn( // chain to a stateIn() function to convert to StateFlow
+            scope = viewModelScope, // pass viewModeScope as coroutine scope tied to ViewModel
+            // ViewModel exposes UI state info as StateFlow through blurUiState variable
+                // converts cold Flow -> hot StateFlow using stateIn()
+            // controls when sharing starts and stops
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = BlurUiState.Default
+            initialValue = BlurUiState.Default // initial value of state flow
         )
 
     /**
@@ -71,7 +78,7 @@ class BlurViewModel(private val bluromaticRepository: BluromaticRepository) : Vi
      * Call method from repository to cancel any ongoing WorkRequest
      * */
     fun cancelWork() {
-        bluromaticRepository.cancelWork()
+        bluromaticRepository.cancelWork() // only works with ViewModel for separation of concerns
     }
 
     /**
